@@ -3,3 +3,29 @@ build/
 .build/
 .DS_Store
 dist/
+
+
+# ── ~/Obsidian project conventions (added 2026-09-27, fork) ─────────────────
+#
+# The lines above are upstream's. These are ours, and they match the sibling
+# projects under ~/Obsidian so a session behaves the same in every vault.
+
+# macOS and editor noise
+._*
+.Spotlight-V100
+.Trashes
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Scratch. `_tmp/` is where a session puts anything that is not the work:
+# patch bundles, extracted text, a copy of something being diffed. Nothing in
+# it is precious; empty it whenever.
+_tmp/
+_to_delete/
+_staging/
+*.bak
+
+# The Claude desktop app creates `Claude outputs/` at the root of whatever
+# folder a session has connected, and drops a copy of every file delivered
+# into the chat there. `~/Obsidian/sync-repos.command` trashes it on each run.
+Claude outputs/
