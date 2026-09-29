@@ -29,3 +29,5 @@ _staging/
 # folder a session has connected, and drops a copy of every file delivered
 # into the chat there. `~/Obsidian/sync-repos.command` trashes it on each run.
 Claude outputs/
+
+wishlist.md
