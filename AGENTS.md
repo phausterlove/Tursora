@@ -7,6 +7,7 @@ Tursora is a native macOS file manager (Swift + AppKit, no Xcode project). Start
 ```bash
 cd app && swift build                                        # debug build
 cd app && TURSORA_SMOKE_TEST=1 .build/debug/Tursora          # the test suite (in-app, headless); run 3×
+cd app && TURSORA_SMOKE_ONLY="Terminal shell sync" TURSORA_SMOKE_TEST=1 .build/debug/Tursora   # one suite from the steps table, for looping a flaky check
 cd app && tools/make-app.sh && open "build/Tursora.app"      # release bundle
 find "$TMPDIR" -maxdepth 1 -name "tursora-*" -exec rm -rf {} +   # after an interrupted test run
 ```

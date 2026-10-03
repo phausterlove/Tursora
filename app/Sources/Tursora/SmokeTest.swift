@@ -100,8 +100,16 @@ enum SmokeTest: SmokeSuite {
                 preferencesIntegration(wc) { windowChrome(wc) { navigation(wc) } }
             }),
         ]
+        // TURSORA_SMOKE_ONLY=<suite name> runs one steps-table entry and exits,
+        // so a flaky suite can be looped without paying for a full run each time.
+        // The filtered run skips the legacy navigation chain's exit, hence its own.
+        let only = ProcessInfo.processInfo.environment["TURSORA_SMOKE_ONLY"]
+        let selected = only.map { name in steps.filter { $0.name == name } } ?? steps
         func runSteps(_ remaining: ArraySlice<Step>) {
-            guard let step = remaining.first else { return }
+            guard let step = remaining.first else {
+                if only != nil { print("SMOKE TEST PASSED (filtered)"); exit(0) }
+                return
+            }
             SmokeReport.shared.beginSuite(step.name)
             step.run {
                 SmokeReport.shared.endSuite()
@@ -110,7 +118,7 @@ enum SmokeTest: SmokeSuite {
         }
         // A cold directory listing can outlive the old one-second delay.
         // Generation records completion, including an empty result or an error.
-        awaitInitialListing(wc.browser.model) { runSteps(steps[...]) }
+        awaitInitialListing(wc.browser.model) { runSteps(selected[...]) }
     }
 
     private static func after(_ s: Double, _ f: @escaping () -> Void) {
