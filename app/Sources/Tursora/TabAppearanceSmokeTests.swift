@@ -86,8 +86,15 @@ enum TabAppearanceSmokeTests: SmokeSuite {
             if let bitmap = bar.bitmapImageRepForCachingDisplay(in: bar.bounds) {
                 bar.cacheDisplay(in: bar.bounds, to: bitmap)
                 check("\(appearanceName.rawValue) produces rendered content", bitmap.pixelsWide > 0 && bitmap.pixelsHigh > 0)
-                let edge = bitmap.colorAt(x: 1, y: bitmap.pixelsHigh / 2)!
-                check("\(appearanceName.rawValue) redraws the actual strip background", abs(luminance(edge) - luminance(color)) < 0.025)
+                let sampled = bitmap.colorAt(x: 1, y: bitmap.pixelsHigh / 2)!
+                // The cached bitmap can come back tagged NSCalibratedRGB (generic, gamma 1.8)
+                // rather than sRGB while its pixel values are still the sRGB components the
+                // view filled with: 236/255 for windowBackgroundColor on an M4 under macOS 26.
+                // Converting that tag through sRGB shifts the luminance by ~0.03, past the
+                // tolerance, so compare the components as drawn.
+                let edge = NSColor(srgbRed: sampled.redComponent, green: sampled.greenComponent, blue: sampled.blueComponent, alpha: 1)
+                check("\(appearanceName.rawValue) redraws the actual strip background", abs(luminance(edge) - luminance(color)) < 0.025,
+                      "edge=\(luminance(edge)) expected=\(luminance(color)) pixel=\(sampled)")
             } else { check("\(appearanceName.rawValue) produces a bitmap", false) }
             let actualLabel = bar.actualRenderedTitleColorForTesting(1)!
             let expectedLabel = bar.resolvedColorsForTesting(appearance: appearance, active: window.isKeyWindow).text
