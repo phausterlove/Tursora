@@ -246,6 +246,11 @@ enum SearchEntrySmokeTests: SmokeSuite {
         wc.focusFilter(nil)
         guard let field = wc.searchField else { check("typing has a toolbar field", false); return }
         field.stringValue = value
+        // Setting a control's value while it is edited can end the editing
+        // session (it reliably does while the toolbar holds the field expanded
+        // from its icon via beginSearchInteraction), and later checks need the
+        // real field editor. Focus installs a fresh one seeded from the cell.
+        if field.currentEditor() == nil { field.window?.makeFirstResponder(field) }
         field.currentEditor()?.string = value
         wc.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: field))
     }
