@@ -101,9 +101,18 @@ struct TerminalPanelPresentation: Equatable {
     }
 
     static var localHostNames: Set<String> {
-        let hostname = ProcessInfo.processInfo.hostName.lowercased()
-        var names: Set<String> = [hostname]
-        if hostname.hasSuffix(".local") { names.insert(String(hostname.dropLast(6))) }
+        // The shell hooks report `gethostname()` (zsh's $HOST) in their OSC 7
+        // URLs, while ProcessInfo.hostName is a reverse-DNS lookup that can
+        // return the router's or ISP's name for this machine instead. Accept
+        // both, or every report of a session is dropped as remote.
+        var names: Set<String> = [ProcessInfo.processInfo.hostName.lowercased()]
+        var buffer = [CChar](repeating: 0, count: 256)
+        if gethostname(&buffer, buffer.count) == 0 {
+            names.insert(String(cString: buffer).lowercased())
+        }
+        for name in names where name.hasSuffix(".local") {
+            names.insert(String(name.dropLast(6)))
+        }
         return names
     }
 }

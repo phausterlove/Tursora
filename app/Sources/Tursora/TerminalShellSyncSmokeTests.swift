@@ -56,6 +56,14 @@ enum TerminalShellSyncSmokeTests: SmokeSuite {
                     TerminalPanelPresentation.isSameDirectory(URL(fileURLWithPath: "/private/tmp", isDirectory: true),
                                                               URL(fileURLWithPath: "/tmp", isDirectory: true)))
 
+        // The shells put gethostname() into their OSC 7 URLs; ProcessInfo's
+        // reverse-DNS name can differ from it (an ISP's name for the uplink),
+        // and the kernel name must stay accepted regardless.
+        var kernelName = [CChar](repeating: 0, count: 256)
+        try require("the machine's own hostname is always accepted as local",
+                    gethostname(&kernelName, kernelName.count) == 0
+                    && TerminalPanelPresentation.localHostNames.contains(String(cString: kernelName).lowercased()))
+
         let directory = URL(fileURLWithPath: "/tmp/quoted ' folder; $HOME", isDirectory: true)
         let configuration = TerminalLaunchConfiguration.make(directory: directory, shell: "/bin/bash",
                                                             shellArguments: ["-i", "--rcfile", "/tmp/rc file"],
