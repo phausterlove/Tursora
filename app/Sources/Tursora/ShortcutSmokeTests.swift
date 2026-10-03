@@ -231,12 +231,31 @@ enum ShortcutSmokeTests: SmokeSuite {
         controller.browser.setViewMode(.details)
         focusNativeMenuWindow(controller, responder: controller.browser.focusView)
         icons?.menu?.update()
-        let iconTarget = icons.flatMap { item in item.action.flatMap { NSApp.target(forAction: $0, to: item.target, from: item) } }
-        if (iconTarget as AnyObject?) !== controller.browser { printMenuDiagnosis(icons, controller: controller) }
-        check("native menu resolves the owned active pane", (iconTarget as AnyObject?) === controller.browser)
-        let handledIcons = menu.performKeyEquivalent(with: event("4", [.command, .option], 21, controller.window))
-        if !handledIcons || controller.browser.viewMode != .icons { printMenuDiagnosis(icons, controller: controller, handled: handledIcons) }
-        check("native menu dispatch changes the active pane", handledIcons && controller.browser.viewMode == .icons)
+        // Another application activating mid-run clears this app's key and
+        // main window, and NSApp.target(forAction:) then has no responder
+        // chain to walk. A one-shot read races window-server focus churn, so
+        // re-assert the fixture window and poll both resolution and dispatch.
+        func refocusNativeMenuWindow() {
+            controller.window?.makeKeyAndOrderFront(nil)
+            controller.window?.makeMain()
+            controller.window?.makeFirstResponder(controller.browser.focusView)
+        }
+        func resolvedIconTarget() -> AnyObject? {
+            icons.flatMap { item in item.action.flatMap { NSApp.target(forAction: $0, to: item.target, from: item) } } as AnyObject?
+        }
+        await expectEventually("native menu resolves the owned active pane",
+                               detail: { printMenuDiagnosis(icons, controller: controller); return "" }) {
+            if resolvedIconTarget() !== controller.browser { refocusNativeMenuWindow() }
+            return resolvedIconTarget() === controller.browser
+        }
+        await expectEventually("native menu dispatch changes the active pane",
+                               detail: { printMenuDiagnosis(icons, controller: controller, handled: false); return "" }) {
+            if controller.browser.viewMode != .icons {
+                refocusNativeMenuWindow()
+                _ = menu.performKeyEquivalent(with: event("4", [.command, .option], 21, controller.window))
+            }
+            return controller.browser.viewMode == .icons
+        }
         check("old menu equivalent stops dispatching", !menu.performKeyEquivalent(with: event("1", [.command, .option], 18, controller.window)))
         if let plusEvent = plusEvent(in: controller.window) {
             let before = controller.browser.zoomIndex
